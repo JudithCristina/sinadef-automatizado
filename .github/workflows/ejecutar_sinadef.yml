@@ -8,7 +8,8 @@ on:
 jobs:
   ejecutar:
     runs-on: ubuntu-latest
-
+    permissions:
+        contents: write  # ✅ esto habilita el git push
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v3
