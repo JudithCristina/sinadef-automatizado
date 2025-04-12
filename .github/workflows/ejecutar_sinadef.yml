@@ -1,15 +1,14 @@
-name: Ejecutar script SINADEF cada 5 min
+name: Ejecutar script SINADEF cada día a las 6am
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # cada 5 minutos
-  workflow_dispatch:       # permite ejecución manual
+    - cron: "0 11 * * *"  # 6:00 a.m. hora Perú (11:00 UTC)
+  workflow_dispatch:
 
 jobs:
   ejecutar:
     runs-on: ubuntu-latest
-    permissions:
-        contents: write  # ✅ esto habilita el git push
+
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v3
@@ -27,13 +26,11 @@ jobs:
 
       - name: Configurar Git para el push automático
         run: |
-          git config --global user.name "JUDITH QUIÑONES INGA"
+          git config --global user.name "Judith Cristina Quiñones Inga"
           git config --global user.email "judithcristinaqi@gmail.com"
 
       - name: Subir CSV al repositorio
         run: |
           git add data/processed/BASE_FINAL_GENERAL.csv
           git commit -m "📦 CSV actualizado automáticamente - $(date -u)" || echo "Sin cambios para subir"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/JudithCristina/sinadef-automatizado.git HEAD:main
