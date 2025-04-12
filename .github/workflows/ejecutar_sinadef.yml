@@ -1,14 +1,17 @@
+
 name: Ejecutar script SINADEF cada día a las 6am
 
 on:
   schedule:
-    # - cron: "0 11 * * *"  # 6:00 a.m. hora Perú (11:00 UTC)
-    - cron: "*/5 * * * *"  # cada 5 minutos
+    - cron: "*/5 * * * *"  # cada 5 minutos (puedes volver a "0 11 * * *" para 6am Perú)
+     # - cron: "0 11 * * *"  # 6:00 a.m. hora Perú (11:00 UTC)
   workflow_dispatch:
 
 jobs:
   ejecutar:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # ✅ Permite el git push con tu PAT_TOKEN
 
     steps:
       - name: Clonar repositorio
@@ -35,3 +38,5 @@ jobs:
           git add data/processed/BASE_FINAL_GENERAL.csv
           git commit -m "📦 CSV actualizado automáticamente - $(date -u)" || echo "Sin cambios para subir"
           git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/JudithCristina/sinadef-automatizado.git HEAD:main
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
