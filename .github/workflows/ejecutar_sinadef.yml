@@ -23,3 +23,16 @@ jobs:
 
       - name: Ejecutar script de procesamiento
         run: python procesar_datos.py
+
+      - name: Configurar Git para el push automático
+        run: |
+          git config --global user.name "JUDITH QUIÑONES INGA"
+          git config --global user.email "judithcristinaqi@gmail.com"
+
+      - name: Subir CSV al repositorio
+        run: |
+          git add data/processed/BASE_FINAL_GENERAL.csv
+          git commit -m "📦 CSV actualizado automáticamente - $(date -u)" || echo "Sin cambios para subir"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
