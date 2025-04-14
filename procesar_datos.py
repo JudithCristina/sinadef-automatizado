@@ -120,8 +120,8 @@ def main():
     # 🔠 Normalizar el campo SEXO
     df_filtrado["SEXO"] = df_filtrado["SEXO"].str.upper().str.strip()
     df_filtrado["SEXO"] = df_filtrado["SEXO"].replace({
-        "FEMENINO": "Femenino",
-        "MASCULINO": "Masculino"
+        "FEMENINO": "Mujer",
+        "MASCULINO": "Hombre"
     })
 
     # 💾 Guardar archivo final
