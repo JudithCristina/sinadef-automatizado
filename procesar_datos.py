@@ -56,8 +56,7 @@ def filter_necropsia_data(data: pd.DataFrame) -> pd.DataFrame:
     filtered = data[
         (data['MUERTE_VIOLENTA'] == "HOMICIDIO") &
         (data['NECROPSIA'] == "SI SE REALIZÓ NECROPSIA") &
-        (data['ANIO'] >= 2017) &
-        (data['ANIO'] <= 2025)
+        (data['ANIO'] >= 2017)
     ]
     logging.info(f"✅ Filtrado completado: {filtered.shape[0]} registros encontrados.")
     return filtered
