@@ -3,7 +3,7 @@ import io
 import logging
 import requests
 import pandas as pd
-
+from datetime import datetime
 # ========================
 # CONFIGURACIÓN DE LOGGING
 # ========================
@@ -124,12 +124,19 @@ def main():
         "MASCULINO": "Hombre"
     })
 
+    # 🕒 Agregar columnas con fecha y hora de procesamiento
+    now = datetime.now()
+    df_filtrado["FECHA_DESCARGA"] = now.strftime("%Y-%m-%d")
+    df_filtrado["HORA_DESCARGA"] = now.strftime("%H:%M:%S")
+
     # 💾 Guardar archivo final
     output_path = os.path.join("data", "processed", "BASE_FINAL_GENERAL.csv")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df_filtrado.to_csv(output_path, index=False)
 
     logging.info(f"📦 Archivo final guardado en: {output_path}")
+    logging.info(f"🕓 Fecha y hora de descarga: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+
 
 if __name__ == "__main__":
     main()
