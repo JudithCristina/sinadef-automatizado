@@ -4,6 +4,7 @@ import logging
 import requests
 import pandas as pd
 from datetime import datetime
+import pytz
 # ========================
 # CONFIGURACIÓN DE LOGGING
 # ========================
@@ -123,8 +124,11 @@ def main():
         "MASCULINO": "Hombre"
     })
 
-    # 🕒 Agregar columnas con fecha y hora de procesamiento
-    now = datetime.now()
+    # Definir la zona horaria de Perú
+    peru_tz = pytz.timezone('America/Lima')
+    now = datetime.now(peru_tz)
+
+    # Agregar columnas al DataFrame
     df_filtrado["FECHA_DESCARGA"] = now.strftime("%Y-%m-%d")
     df_filtrado["HORA_DESCARGA"] = now.strftime("%H:%M:%S")
 
