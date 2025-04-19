@@ -23,18 +23,26 @@ KEYWORDS = {
         "perforocontusa", "perfocontusas", "perforo-contuso", "perforo contuso", "peroforo-contusas",
         "perforo - contuso", "perforo -contusa", "ferforo - contusas", "perforocontuss", "contuso perforante", "orificio de entrada",
         "heridas multiples por fdf", "herida perforante", "heridas perforantes", "lesion perforante",
-        "curso perforante", "curso perforantes", "curso penetrante"
+        "curso perforante", "curso perforantes",
+        "curso penetrante"         
     ],
     "Arma blanca": [
-        "arma blanca", "punzocortante", "punzocortantes", "punzo-cortante", "punzopenetrante",
-        "punzo-penetrante", "punzo cortante", "punzocortopenetrante", "degüello", "deguello",
-        "degollamiento", "herida cortante", "decapitación", "decapitacion", "cuchillo", "punzante",
-        "punta y filo", "botella rota", "objeto cortante", "corto penetrante", "cortopenetrante",
-        "contusocortante", "traumatismos cortantes"
-    ],
+        "arma blanca", "arma  blanca", "punzocortante", "punzocortarte", "punzo cortante", "punzo-cortante", "punzocortantes",
+        "punzo - cortante", "punzo - cortantes", "punzo-cortantes", "punza - cortante", "lesion cortante", "lesión cortante",
+        "punzo-cortantes", "punzopenetrante", "punzo-penetrante", "punzo - penetrante", "punzo penetrante", "punza cortante",
+        "punzocortopenetrante", "punzocortoperforante", "punzo-corto-penetrante", "punzo corto penetrante", "ponzo cortantes",
+        "punzo cortante penetrante", "punzo cortante penetrante", "punzocortante penetrante", "puncortantes", "punzocorto penetrante",
+        "punzo-corto penetrante", "corto-punzo-penetrante", "punzo- penetrante", "corto punzante", "cortantes y penetrantes", "punzo-corzo-penetrante",
+        "corto punzantes", "contusocortante", "contusocortantes", "contuso-cortante", "contusas cortantes", "corto penetrante", "corto penetrantes",
+        "cortopenetrante", "cortopenetrantes", "corto-penetrante", "contuso-cortantes", "contuso cortante", "objeto cortante", "degüello", "deguello", "degúello",
+        "degullo", "degollamiento", "herida cortante", "decapitación", "punzante", "punta - filo - hoja", "decapitacion",
+        "punta y-o filo", "punta y filo", "punta yo filo", "botella rota", "seccion de traquea y vasos de cuello", "seccion de laringe y grandes vasos",
+        "sección total de laringe y de vasos sanguineos", "seccionamiento de paquete vasculo nervioso cevical", "herdas cortantes",
+        "heridas cortantes", "cuchillo", "filo y peso", "objeto con uso cortante", "traumatismos cortantes", "herida transfixiante en cuello"  
+    ],    
     "Asfixia": [
-        "estrangulación", "estrangulamiento", "estrangulacion", "asfixia", "asfiixia",
-        "extrangulamiento", "ahorcamiento", "ahorcadura", "sofocacion", "ahogamiento"
+        "estrangulación", "estrangulamiento", "estrangulacion", "asfixia",  "asfiixia", "extrangulamiento",
+        "asfixias", "ahorcamiento", "ahorcadura", "sofocacion", "ahogamiento"
     ]
 }
 
