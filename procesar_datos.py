@@ -100,7 +100,7 @@ def clasificar_edad(row: pd.Series) -> str:
     except (ValueError, TypeError):
         return "Sin clasificar"
     tiempo = str(row.get('TIEMPO_EDAD', "")).strip().upper()
-    if tiempo in ["MESES", "MINUTOS"]:
+    if tiempo in ["MESES", "MINUTOS", "DIAS"]:
         return "Niño"
     elif tiempo == "AÑOS":
         if 0 <= edad <= 11: return "Niño"
