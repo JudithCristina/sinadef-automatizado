@@ -117,7 +117,15 @@ def main():
     logging.info("🚀 Iniciando procesamiento de datos SINADEF...")
 
     url = "https://files.minsa.gob.pe/s/Ae52gBAMf9aKEzK/download/SINADEF_DATOS_ABIERTOS.csv"
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "es-ES,es;q=0.9",
+    "Connection": "keep-alive",
+    "Referer": "https://files.minsa.gob.pe/s/Ae52gBAMf9aKEzK/download/SINADEF_DATOS_ABIERTOS.csv",  # Cambia esto si entras desde otra web oficial
+    "DNT": "1"
+}
 
     df = download_csv(url, headers)
     df_filtrado = filter_necropsia_data(df)
