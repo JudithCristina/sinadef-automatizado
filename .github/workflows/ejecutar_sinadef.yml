@@ -1,8 +1,8 @@
-name: Ejecutar script SINADEF cada día a las 3pm
+name: Ejecutar script SINADEF cada día a las pm
 
 on:
   schedule:
-    - cron: "0 20 * * *"
+    - cron: "25 20 * * *"
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
           python-version: "3.10"
 
       - name: Instalar dependencias
-        run: pip install pandas requests
+        run: pip install pandas requests pytz
 
       # Reintentos simples con bash
       - name: Ejecutar script con 5 reintentos
