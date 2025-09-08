@@ -54,7 +54,15 @@ def download_csv(url: str, headers: dict) -> pd.DataFrame:
     try:
         response = requests.get(url, headers=headers, timeout=60)
         response.raise_for_status()
-        df = pd.read_csv(io.StringIO(response.text), encoding="utf-8")
+        df = pd.read_csv(
+            io.StringIO(response.text), 
+            sep=",",
+            quoting=3,              # QUOTE_NONE
+            encoding="latin1",      # Cambiar de utf-8 a latin1
+            dtype=str,
+            engine='python',
+            on_bad_lines="skip"     # Skip problemáticas
+        )
         logging.info("✅ Archivo descargado correctamente.")
         return df
     except Exception as e:
