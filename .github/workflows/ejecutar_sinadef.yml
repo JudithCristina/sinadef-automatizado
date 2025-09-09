@@ -1,16 +1,17 @@
-name: Ejecutar script SINADEF cada día a las pm
+
+name: Ejecutar script SINADEF cada día a las 6am
 
 on:
   schedule:
-    - cron: "25 20 * * *"
+    - cron: "30 0 * * *"  # 6:00 a.m. hora Perú (11:00 UTC)
   workflow_dispatch:
 
 jobs:
   ejecutar:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-    
+      contents: write  # ✅ Permite el git push con tu PAT_TOKEN
+
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v3
@@ -21,24 +22,10 @@ jobs:
           python-version: "3.10"
 
       - name: Instalar dependencias
-        run: pip install pandas requests pytz
+        run: pip install pandas requests
 
-      # Reintentos simples con bash
-      - name: Ejecutar script con 5 reintentos
-        run: |
-          for i in {1..5}; do
-            echo "🔄 Intento $i/5"
-            if python procesar_datos.py; then
-              echo "✅ Éxito en intento $i"
-              break
-            elif [ $i -eq 5 ]; then
-              echo "❌ Falló después de 5 intentos"
-              exit 1
-            else
-              echo "⏳ Esperando 60 segundos antes del siguiente intento..."
-              sleep 60
-            fi
-          done
+      - name: Ejecutar script de procesamiento
+        run: python procesar_datos.py
 
       - name: Configurar Git para el push automático
         run: |
