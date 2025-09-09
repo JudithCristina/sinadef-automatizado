@@ -59,7 +59,7 @@ def download_csv(url: str, headers: dict) -> pd.DataFrame:
             sep=",",
             quoting=3,              # QUOTE_NONE
             engine='python',
-            on_bad_lines="skip"     # Skip problemáticas
+            on_bad_lines="skip"     # Skip 
         )
         logging.info("✅ Archivo descargado correctamente.")
         return df
