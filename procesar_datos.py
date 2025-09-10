@@ -114,7 +114,7 @@ def clasificar_edad(row: pd.Series) -> str:
         elif 18 <= edad <= 29: return "Joven"
         elif 30 <= edad <= 59: return "Adulto"
         elif 60 <= edad <= 100: return "Adulto mayor"
-    return "Sin clasificar"
+    return "Sin registro"
 
 # ========================
 # FLUJO PRINCIPAL
@@ -143,7 +143,8 @@ def main():
     df_filtrado["SEXO"] = df_filtrado["SEXO"].str.upper().str.strip()
     df_filtrado["SEXO"] = df_filtrado["SEXO"].replace({
         "FEMENINO": "Mujer",
-        "MASCULINO": "Hombre"
+        "MASCULINO": "Hombre",
+        "SIN REGISTRO": "Sin registro"
     })
 
     # Definir la zona horaria de Perú
