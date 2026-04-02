@@ -2,7 +2,7 @@ name: Ejecutar script SINADEF cada día a las 6:00 am
 
 on:
   schedule:
-    - cron: "* 11 * * *"
+    - cron: "0 11 * * *"
   workflow_dispatch:
 
 jobs:
@@ -23,12 +23,14 @@ jobs:
       - name: Instalar dependencias
         run: pip install pandas requests pytz
 
-      # Reintentos simples con bash
       - name: Ejecutar script con 5 reintentos
         run: |
           for i in {1..5}; do
             echo "🔄 Intento $i/5"
-            if python procesar_datos.py; then
+            python procesar_datos.py
+            EXIT_CODE=$?
+            echo "Código de salida: $EXIT_CODE"
+            if [ $EXIT_CODE -eq 0 ]; then
               echo "✅ Éxito en intento $i"
               break
             elif [ $i -eq 5 ]; then
