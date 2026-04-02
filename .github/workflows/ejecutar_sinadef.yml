@@ -2,7 +2,8 @@ name: Ejecutar script SINADEF cada día a las 6:00 am
 
 on:
   schedule:
-    - cron: "0 11 * * *"
+    - cron:  "* * * * *"
+
   workflow_dispatch:
 
 jobs:
