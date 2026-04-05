@@ -1,10 +1,12 @@
 import os
 import io
+import zipfile
 import logging
 import requests
 import pandas as pd
 from datetime import datetime
 import pytz
+
 # ========================
 # CONFIGURACIÓN DE LOGGING
 # ========================
@@ -41,7 +43,7 @@ KEYWORDS = {
         "heridas cortantes", "cuchillo", "filo y peso", "objeto con uso cortante", "traumatismos cortantes", "herida transfixiante en cuello"  
     ],    
     "Asfixia": [
-        "estrangulación", "estrangulamiento", "estrangulacion", "asfixia",  "asfiixia", "extrangulamiento",
+        "estrangulación", "estrangulamiento", "estrangulacion", "asfixia", "asfiixia", "extrangulamiento",
         "asfixias", "ahorcamiento", "ahorcadura", "sofocacion", "ahogamiento"
     ]
 }
@@ -52,34 +54,39 @@ KEYWORDS = {
 def download_csv(url: str, headers: dict) -> pd.DataFrame:
     logging.info("📥 Descargando datos desde SINADEF...")
     try:
-        response = requests.get(url, headers=headers, timeout=60)
+        response = requests.get(url, headers=headers, timeout=120)
         response.raise_for_status()
-        df = pd.read_csv(
-            io.StringIO(response.text), 
-            sep=",",
-            quoting=3,              # QUOTE_NONE
-            engine='python',
-            on_bad_lines="skip"     # Skip 
-        )
-        logging.info("✅ Archivo descargado correctamente.")
+
+        zip_buffer = io.BytesIO(response.content)
+        with zipfile.ZipFile(zip_buffer) as z:
+            nombres = z.namelist()
+            logging.info(f"📦 Archivos en ZIP: {nombres}")
+            csv_nombre = [n for n in nombres if n.endswith('.csv')][0]
+            with z.open(csv_nombre) as csv_file:
+                df = pd.read_csv(csv_file, sep=",", encoding="utf-8-sig", on_bad_lines="skip")
+
+        logging.info(f"✅ Archivo descargado correctamente. Filas: {len(df)} | Columnas: {df.columns.tolist()}")
         return df
     except Exception as e:
         logging.error(f"❌ Error al descargar o leer el archivo: {e}")
         raise
 
 def filter_necropsia_data(data: pd.DataFrame) -> pd.DataFrame:
+    data['MUERTE_VIOLENTA'] = data['MUERTE_VIOLENTA'].str.strip()
+    data['NECROPSIA'] = data['NECROPSIA'].str.strip()
+
     filtered = data[
         (data['MUERTE_VIOLENTA'] == "HOMICIDIO") &
-        (data['NECROPSIA'] == "SI SE REALIZÓ NECROPSIA") &
+        (data['NECROPSIA'].str.contains("SI SE REALIZ", na=False)) &
         (data['ANIO'] >= 2017)
-    ]
+    ].copy()  # ← evita SettingWithCopyWarning
+
     logging.info(f"✅ Filtrado completado: {filtered.shape[0]} registros encontrados.")
     return filtered
 
 def clasificar_causa(causa: str) -> str:
     causa = str(causa).lower()
     
-    # Reglas especiales por combinación de palabras clave
     if "perforante" in causa and "penetrante" in causa:
         return "Arma de fuego"
     if "perforantes" in causa and "penetrantes" in causa:
@@ -87,7 +94,6 @@ def clasificar_causa(causa: str) -> str:
     if "peroforantes" in causa and "penetrantes" in causa:
         return "Arma de fuego"
 
-    # Revisión con palabras clave del diccionario
     for categoria, palabras in KEYWORDS.items():
         if any(p in causa for p in palabras):
             return categoria
@@ -124,23 +130,21 @@ def main():
 
     url = "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download"
     headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Accept-Language": "es-ES,es;q=0.9",
-    "Connection": "keep-alive",
-    "Referer": "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download",  # Cambia esto si entras desde otra web oficial
-    "DNT": "1"
-}
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Connection": "keep-alive",
+        "Referer": "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download",
+        "DNT": "1"
+    }
 
     df = download_csv(url, headers)
-    print(df)
     df_filtrado = filter_necropsia_data(df)
 
     df_filtrado["Grupo_Causa"] = df_filtrado.apply(clasificar_causa_row, axis=1)
     df_filtrado["EDADES"] = df_filtrado.apply(clasificar_edad, axis=1)
 
-    # 🔠 Normalizar el campo SEXO
     df_filtrado["SEXO"] = df_filtrado["SEXO"].str.upper().str.strip()
     df_filtrado["SEXO"] = df_filtrado["SEXO"].replace({
         "FEMENINO": "Mujer",
@@ -148,15 +152,12 @@ def main():
         "SIN REGISTRO": "Sin registro"
     })
 
-    # Definir la zona horaria de Perú
     peru_tz = pytz.timezone('America/Lima')
     now = datetime.now(peru_tz)
 
-    # Agregar columnas al DataFrame
     df_filtrado["FECHA_DESCARGA"] = now.strftime("%Y-%m-%d")
     df_filtrado["HORA_DESCARGA"] = now.strftime("%H:%M:%S")
 
-    # 💾 Guardar archivo final
     output_path = os.path.join("data", "processed", "BASE_FINAL_GENERAL.csv")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df_filtrado.to_csv(output_path, index=False)
