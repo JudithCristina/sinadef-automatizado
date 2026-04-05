@@ -1,4 +1,4 @@
-name: Ejecutar script SINADEF cada día a las 6:00 am
+name: Ejecutar script SINADEF cada día a las 7:00 am
 
 on:
   schedule:
