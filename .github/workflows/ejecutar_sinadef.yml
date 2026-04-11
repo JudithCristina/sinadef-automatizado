@@ -2,7 +2,7 @@ name: Ejecutar script SINADEF cada día a las 7:00 am
 
 on:
   schedule:
-    - cron: "0 12 * * *"
+    - cron: "0 12 * * *"  # 7:00 am Perú
   workflow_dispatch:
 
 jobs:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v3
@@ -23,34 +23,63 @@ jobs:
       - name: Instalar dependencias
         run: pip install pandas requests pytz
 
-      - name: Ejecutar script con 5 reintentos
+      # 🔁 REINTENTOS REALES
+      - name: Ejecutar script con reintentos
+        id: ejecutar_script
         run: |
+          EXIT_CODE=1
           for i in {1..5}; do
             echo "🔄 Intento $i/5"
             python procesar_datos.py
+
             EXIT_CODE=$?
             echo "Código de salida: $EXIT_CODE"
+
             if [ $EXIT_CODE -eq 0 ]; then
               echo "✅ Éxito en intento $i"
               break
-            elif [ $i -eq 5 ]; then
-              echo "❌ Falló después de 5 intentos"
-              exit 1
-            else
-              echo "⏳ Esperando 60 segundos antes del siguiente intento..."
+            fi
+
+            if [ $i -lt 5 ]; then
+              echo "⏳ Reintentando en 60 segundos..."
               sleep 60
             fi
           done
 
-      - name: Configurar Git para el push automático
+          exit $EXIT_CODE
+
+      # ✅ SOLO SI TODO SALIÓ BIEN
+      - name: Configurar Git
+        if: success()
         run: |
           git config --global user.name "Judith Cristina Quiñones Inga"
           git config --global user.email "judithcristinaqi@gmail.com"
 
-      - name: Subir CSV al repositorio
+      - name: Subir CSV
+        if: success()
         run: |
           git add data/processed/BASE_FINAL_GENERAL.csv
-          git commit -m "📦 CSV actualizado automáticamente - $(date -u)" || echo "Sin cambios para subir"
+          git commit -m "📦 CSV actualizado automáticamente - $(date -u)" || echo "Sin cambios"
           git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/JudithCristina/sinadef-automatizado.git HEAD:main
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      # 📧 ALERTA POR CORREO SI FALLA
+      - name: Enviar correo si falla
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "❌ Error en actualización SINADEF"
+          to: judithcristinaqi@gmail.com
+          from: "GitHub Actions SINADEF"
+          body: |
+            El proceso automático de SINADEF falló.
+
+            🔴 El CSV NO fue actualizado.
+            📅 Fecha: ${{ github.run_id }}
+            🔁 Se intentó 5 veces sin éxito.
+
+            Revisar logs en GitHub Actions.
