@@ -48,10 +48,11 @@ KEYWORDS = {
     ]
 }
 
+
 # ========================
 # FUNCIONES
 # ========================
-def download_csv(url: str, headers: dict) -> pd.DataFrame:
+def download_csv(url: str, headers: dict):
     logging.info("📥 Descargando datos desde SINADEF...")
     try:
         response = requests.get(url, headers=headers, timeout=120)
@@ -61,17 +62,19 @@ def download_csv(url: str, headers: dict) -> pd.DataFrame:
         with zipfile.ZipFile(zip_buffer) as z:
             nombres = z.namelist()
             logging.info(f"📦 Archivos en ZIP: {nombres}")
+
             csv_nombre = [n for n in nombres if n.endswith('.csv')][0]
             with z.open(csv_nombre) as csv_file:
                 df = pd.read_csv(csv_file, sep=",", encoding="utf-8-sig", on_bad_lines="skip")
 
-        logging.info(f"✅ Archivo descargado correctamente. Filas: {len(df)} | Columnas: {df.columns.tolist()}")
+        logging.info(f"✅ Archivo descargado correctamente. Filas: {len(df)}")
         return df
+
     except Exception as e:
         logging.error(f"❌ Error al descargar o leer el archivo: {e}")
-        raise
+        return None  # 👈 CLAVE
 
-def filter_necropsia_data(data: pd.DataFrame) -> pd.DataFrame:
+def filter_necropsia_data(data: pd.DataFrame):
     data['MUERTE_VIOLENTA'] = data['MUERTE_VIOLENTA'].str.strip()
     data['NECROPSIA'] = data['NECROPSIA'].str.strip()
 
@@ -79,92 +82,96 @@ def filter_necropsia_data(data: pd.DataFrame) -> pd.DataFrame:
         (data['MUERTE_VIOLENTA'] == "HOMICIDIO") &
         (data['NECROPSIA'].str.contains("SI SE REALIZ", na=False)) &
         (data['ANIO'] >= 2017)
-    ].copy()  # ← evita SettingWithCopyWarning
+    ].copy()
 
-    logging.info(f"✅ Filtrado completado: {filtered.shape[0]} registros encontrados.")
+    logging.info(f"✅ Filtrado completado: {filtered.shape[0]} registros")
     return filtered
 
-def clasificar_causa(causa: str) -> str:
-    causa = str(causa).lower()
-    
-    if "perforante" in causa and "penetrante" in causa:
-        return "Arma de fuego"
-    if "perforantes" in causa and "penetrantes" in causa:
-        return "Arma de fuego"
-    if "peroforantes" in causa and "penetrantes" in causa:
-        return "Arma de fuego"
+def clasificar_causa(texto: str):
+    texto = str(texto).lower()
 
     for categoria, palabras in KEYWORDS.items():
-        if any(p in causa for p in palabras):
+        if any(p in texto for p in palabras):
             return categoria
 
     return "Otra causa"
 
-def clasificar_causa_row(row: pd.Series) -> str:
+def clasificar_causa_row(row: pd.Series):
     columnas = ['DEBIDO_CAUSA_A', 'DEBIDO_CAUSA_B', 'DEBIDO_CAUSA_C',
                 'DEBIDO_CAUSA_D', 'DEBIDO_CAUSA_E', 'DEBIDO_CAUSA_F']
-    texto_completo = " ".join(str(row[col]) for col in columnas if pd.notnull(row[col]))
-    return clasificar_causa(texto_completo)
 
-def clasificar_edad(row: pd.Series) -> str:
+    texto = " ".join(str(row[col]) for col in columnas if pd.notnull(row[col]))
+    return clasificar_causa(texto)
+
+def clasificar_edad(row: pd.Series):
     try:
         edad = float(row.get('EDAD', None))
-    except (ValueError, TypeError):
+    except:
         return "Sin registro"
-    tiempo = str(row.get('TIEMPO_EDAD', "")).strip().upper()
+
+    tiempo = str(row.get('TIEMPO_EDAD', "")).upper()
+
     if tiempo in ["MESES", "MINUTOS", "DIAS"]:
         return "Niño"
     elif tiempo == "AÑOS":
-        if 0 <= edad <= 11: return "Niño"
-        elif 12 <= edad <= 17: return "Adolescente"
-        elif 18 <= edad <= 29: return "Joven"
-        elif 30 <= edad <= 59: return "Adulto"
-        elif 60 <= edad <= 100: return "Adulto mayor"
+        if edad <= 11: return "Niño"
+        elif edad <= 17: return "Adolescente"
+        elif edad <= 29: return "Joven"
+        elif edad <= 59: return "Adulto"
+        else: return "Adulto mayor"
+
     return "Sin registro"
 
 # ========================
 # FLUJO PRINCIPAL
 # ========================
 def main():
-    logging.info("🚀 Iniciando procesamiento de datos SINADEF...")
+    logging.info("🚀 Iniciando procesamiento...")
 
     url = "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "es-ES,es;q=0.9",
-        "Connection": "keep-alive",
-        "Referer": "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download",
-        "DNT": "1"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
+    # 1. Descargar
     df = download_csv(url, headers)
+
+    if df is None:
+        logging.error("❌ No se pudo descargar el CSV. Se mantiene versión anterior.")
+        return 1  # 👈 activa reintento
+
+    # 2. Filtrar
     df_filtrado = filter_necropsia_data(df)
 
+    if df_filtrado.empty:
+        logging.warning("⚠️ Dataset vacío. No se actualizará el CSV.")
+        return 1  # 👈 reintento
+
+    # 3. Procesar
     df_filtrado["Grupo_Causa"] = df_filtrado.apply(clasificar_causa_row, axis=1)
     df_filtrado["EDADES"] = df_filtrado.apply(clasificar_edad, axis=1)
 
     df_filtrado["SEXO"] = df_filtrado["SEXO"].str.upper().str.strip()
     df_filtrado["SEXO"] = df_filtrado["SEXO"].replace({
         "FEMENINO": "Mujer",
-        "MASCULINO": "Hombre",
-        "SIN REGISTRO": "Sin registro"
+        "MASCULINO": "Hombre"
     })
 
+    # 4. Fecha Perú
     peru_tz = pytz.timezone('America/Lima')
     now = datetime.now(peru_tz)
 
     df_filtrado["FECHA_DESCARGA"] = now.strftime("%Y-%m-%d")
     df_filtrado["HORA_DESCARGA"] = now.strftime("%H:%M:%S")
 
-    output_path = os.path.join("data", "processed", "BASE_FINAL_GENERAL.csv")
+    # 5. Guardar
+    output_path = "data/processed/BASE_FINAL_GENERAL.csv"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df_filtrado.to_csv(output_path, index=False)
 
-    logging.info(f"📦 Archivo final guardado en: {output_path}")
-    logging.info(f"🕓 Fecha y hora de descarga: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"✅ CSV actualizado correctamente")
+    return 0  # 👈 éxito
 
-
+# ========================
+# EJECUCIÓN
+# ========================
 if __name__ == "__main__":
-    main()
+    exit(main())
