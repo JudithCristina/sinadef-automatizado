@@ -23,7 +23,19 @@ jobs:
       - name: Instalar dependencias
         run: pip install pandas requests pytz
 
-      # 🔁 REINTENTOS REALES
+      - name: Descargar CSV de MINSA
+        run: |
+          curl -L \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Referer: https://www.minsa.gob.pe/" \
+            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+            -H "Accept-Language: es-PE,es;q=0.9" \
+            --retry 5 \
+            --retry-delay 30 \
+            -o datos_minsa.zip \
+            "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download"
+          unzip datos_minsa.zip -d datos_minsa/
+
       - name: Ejecutar script con reintentos
         id: ejecutar_script
         run: |
@@ -48,7 +60,6 @@ jobs:
 
           exit $EXIT_CODE
 
-      # ✅ SOLO SI TODO SALIÓ BIEN
       - name: Configurar Git
         if: success()
         run: |
@@ -62,7 +73,6 @@ jobs:
           git commit -m "📦 CSV actualizado automáticamente - $(date -u)" || echo "Sin cambios"
           git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/JudithCristina/sinadef-automatizado.git HEAD:main
 
-      # 📧 ALERTA POR CORREO SI FALLA
       - name: Enviar correo si falla
         if: failure()
         uses: dawidd6/action-send-mail@v3

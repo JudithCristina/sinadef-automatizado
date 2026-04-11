@@ -1,8 +1,6 @@
 import os
-import io
-import zipfile
+import glob
 import logging
-import requests
 import pandas as pd
 from datetime import datetime
 import pytz
@@ -26,7 +24,7 @@ KEYWORDS = {
         "perforo - contuso", "perforo -contusa", "ferforo - contusas", "perforocontuss", "contuso perforante", "orificio de entrada",
         "heridas multiples por fdf", "herida perforante", "heridas perforantes", "lesion perforante",
         "curso perforante", "curso perforantes",
-        "curso penetrante"         
+        "curso penetrante"
     ],
     "Arma blanca": [
         "arma blanca", "arma  blanca", "punzocortante", "punzocortarte", "punzo cortante", "punzo-cortante", "punzocortantes",
@@ -40,8 +38,8 @@ KEYWORDS = {
         "degullo", "degollamiento", "herida cortante", "decapitación", "punzante", "punta - filo - hoja", "decapitacion",
         "punta y-o filo", "punta y filo", "punta yo filo", "botella rota", "seccion de traquea y vasos de cuello", "seccion de laringe y grandes vasos",
         "sección total de laringe y de vasos sanguineos", "seccionamiento de paquete vasculo nervioso cevical", "herdas cortantes",
-        "heridas cortantes", "cuchillo", "filo y peso", "objeto con uso cortante", "traumatismos cortantes", "herida transfixiante en cuello"  
-    ],    
+        "heridas cortantes", "cuchillo", "filo y peso", "objeto con uso cortante", "traumatismos cortantes", "herida transfixiante en cuello"
+    ],
     "Asfixia": [
         "estrangulación", "estrangulamiento", "estrangulacion", "asfixia", "asfiixia", "extrangulamiento",
         "asfixias", "ahorcamiento", "ahorcadura", "sofocacion", "ahogamiento"
@@ -52,27 +50,21 @@ KEYWORDS = {
 # ========================
 # FUNCIONES
 # ========================
-def download_csv(url: str, headers: dict):
-    logging.info("📥 Descargando datos desde SINADEF...")
+def download_csv(ruta_local: str = "datos_minsa/"):
+    logging.info("📂 Leyendo archivo descargado por curl...")
     try:
-        response = requests.get(url, headers=headers, timeout=120)
-        response.raise_for_status()
+        archivos = glob.glob(f"{ruta_local}*.csv")
+        if not archivos:
+            logging.error("❌ No se encontró ningún CSV en la carpeta")
+            return None
 
-        zip_buffer = io.BytesIO(response.content)
-        with zipfile.ZipFile(zip_buffer) as z:
-            nombres = z.namelist()
-            logging.info(f"📦 Archivos en ZIP: {nombres}")
-
-            csv_nombre = [n for n in nombres if n.endswith('.csv')][0]
-            with z.open(csv_nombre) as csv_file:
-                df = pd.read_csv(csv_file, sep=",", encoding="utf-8-sig", on_bad_lines="skip")
-
-        logging.info(f"✅ Archivo descargado correctamente. Filas: {len(df)}")
+        df = pd.read_csv(archivos[0], sep=",", encoding="utf-8-sig", on_bad_lines="skip")
+        logging.info(f"✅ Archivo leído correctamente. Filas: {len(df)}")
         return df
 
     except Exception as e:
-        logging.error(f"❌ Error al descargar o leer el archivo: {e}")
-        return None  # 👈 CLAVE
+        logging.error(f"❌ Error al leer el archivo: {e}")
+        return None
 
 def filter_necropsia_data(data: pd.DataFrame):
     data['MUERTE_VIOLENTA'] = data['MUERTE_VIOLENTA'].str.strip()
@@ -89,17 +81,14 @@ def filter_necropsia_data(data: pd.DataFrame):
 
 def clasificar_causa(texto: str):
     texto = str(texto).lower()
-
     for categoria, palabras in KEYWORDS.items():
         if any(p in texto for p in palabras):
             return categoria
-
     return "Otra causa"
 
 def clasificar_causa_row(row: pd.Series):
     columnas = ['DEBIDO_CAUSA_A', 'DEBIDO_CAUSA_B', 'DEBIDO_CAUSA_C',
                 'DEBIDO_CAUSA_D', 'DEBIDO_CAUSA_E', 'DEBIDO_CAUSA_F']
-
     texto = " ".join(str(row[col]) for col in columnas if pd.notnull(row[col]))
     return clasificar_causa(texto)
 
@@ -128,26 +117,19 @@ def clasificar_edad(row: pd.Series):
 def main():
     logging.info("🚀 Iniciando procesamiento...")
 
-    url = "https://files.minsa.gob.pe/s/a6Hmynsenb7Px2y/download"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "es-PE,es;q=0.9",
-        "Referer": "https://www.minsa.gob.pe/",
-    }
-    # 1. Descargar
-    df = download_csv(url, headers)
+    # 1. Leer CSV descargado por curl
+    df = download_csv()
 
     if df is None:
-        logging.error("❌ No se pudo descargar el CSV. Se mantiene versión anterior.")
-        return 1  # 👈 activa reintento
+        logging.error("❌ No se pudo leer el CSV.")
+        return 1
 
     # 2. Filtrar
     df_filtrado = filter_necropsia_data(df)
 
     if df_filtrado.empty:
         logging.warning("⚠️ Dataset vacío. No se actualizará el CSV.")
-        return 1  # 👈 reintento
+        return 1
 
     # 3. Procesar
     df_filtrado["Grupo_Causa"] = df_filtrado.apply(clasificar_causa_row, axis=1)
@@ -162,7 +144,6 @@ def main():
     # 4. Fecha Perú
     peru_tz = pytz.timezone('America/Lima')
     now = datetime.now(peru_tz)
-
     df_filtrado["FECHA_DESCARGA"] = now.strftime("%Y-%m-%d")
     df_filtrado["HORA_DESCARGA"] = now.strftime("%H:%M:%S")
 
@@ -171,11 +152,11 @@ def main():
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df_filtrado.to_csv(output_path, index=False)
 
-    logging.info(f"✅ CSV actualizado correctamente")
-    return 0  # 👈 éxito
+    logging.info("✅ CSV actualizado correctamente")
+    return 0
 
 # ========================
 # EJECUCIÓN
 # ========================
 if __name__ == "__main__":
-    exit(main()) 
+    exit(main())
